@@ -13,16 +13,18 @@ import CustomTitleBar from './CustomTitleBar';
 function renderBar(over: Partial<React.ComponentProps<typeof CustomTitleBar>> = {}) {
     const onRestoreSession = vi.fn();
     const onDismissRestore = vi.fn();
+    const onLogoutClick = vi.fn();
     const result = render(
         <CustomTitleBar
             onRestoreSession={onRestoreSession}
             onDismissRestore={onDismissRestore}
+            onLogoutClick={onLogoutClick}
             {...over}
         >
             <div data-testid="tabbar" />
         </CustomTitleBar>,
     );
-    return { ...result, onRestoreSession, onDismissRestore };
+    return { ...result, onRestoreSession, onDismissRestore, onLogoutClick };
 }
 
 describe('CustomTitleBar — 恢复对话 pill (Issue #309)', () => {
@@ -64,5 +66,13 @@ describe('CustomTitleBar — 恢复对话 pill (Issue #309)', () => {
         expect(dragRegions.some((node) => (node as HTMLElement).style.width === '30px')).toBe(true);
         expect(dragRegions.some((node) => (node as HTMLElement).className.includes('w-1'))).toBe(true);
         expect(tabbarHost?.className).toContain('flex-1');
+    });
+
+    it('calls onLogoutClick from the logout action', () => {
+        const { onLogoutClick } = renderBar();
+
+        fireEvent.click(screen.getByRole('button', { name: '注销' }));
+
+        expect(onLogoutClick).toHaveBeenCalledTimes(1);
     });
 });

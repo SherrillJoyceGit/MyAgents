@@ -9,7 +9,7 @@
  * we use decorations: false on Windows for custom title bar styling.
  */
 
-import { Bot, Minus, Square, X, RefreshCw, RotateCcw, Settings, Copy, CheckSquare } from 'lucide-react';
+import { Bot, Minus, Square, X, RefreshCw, RotateCcw, Settings, Copy, CheckSquare, LogOut } from 'lucide-react';
 import { type CSSProperties, type ReactNode, useCallback, useEffect, useRef, useState } from 'react';
 import { isTauri } from '@/api/tauriClient';
 import { CUSTOM_EVENTS } from '@/../shared/constants';
@@ -19,6 +19,7 @@ interface CustomTitleBarProps {
     children: ReactNode;  // TabBar component
     onSettingsClick?: () => void;
     onOpenBugReport?: () => void;
+    onLogoutClick?: () => void;
     /** Whether an update is ready to install */
     updateReady?: boolean;
     /** Version of the update ready to install */
@@ -65,6 +66,7 @@ export default function CustomTitleBar({
     children,
     onSettingsClick,
     onOpenBugReport,
+    onLogoutClick,
     updateReady,
     updateVersion,
     updateInstalling,
@@ -321,6 +323,17 @@ export default function CustomTitleBar({
                 >
                     <Settings className="h-4 w-4" />
                     <span className="text-sm font-medium">设置</span>
+                </button>
+                <TitlebarDragSpacer className="w-1" />
+
+                <button
+                    onClick={onLogoutClick}
+                    className="flex h-7 items-center gap-1.5 rounded-md px-2.5 text-[var(--ink-muted)] transition-colors hover:bg-[var(--paper-inset)] hover:text-[var(--ink)]"
+                    title="注销登录"
+                    data-no-drag
+                >
+                    <LogOut className="h-4 w-4" />
+                    <span className="text-sm font-medium">注销</span>
                 </button>
                 <TitlebarDragSpacer className="w-1" />
             </div>

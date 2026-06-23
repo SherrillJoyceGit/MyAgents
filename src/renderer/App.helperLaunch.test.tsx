@@ -1,4 +1,4 @@
-import { act, render, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { CUSTOM_EVENTS } from '../shared/constants';
@@ -103,7 +103,13 @@ vi.mock('@/components/ChatBootOverlay', () => ({
 }));
 
 vi.mock('@/components/ConfirmDialog', () => ({
-  default: () => <div data-testid="confirm-dialog" />,
+  default: ({ title, onConfirm, onCancel }: { title: string; onConfirm: () => void; onCancel: () => void }) => (
+    <div data-testid="confirm-dialog">
+      <span>{title}</span>
+      <button type="button" onClick={onCancel}>取消</button>
+      <button type="button" onClick={onConfirm}>确认</button>
+    </div>
+  ),
 }));
 
 vi.mock('@/components/BugReportOverlay', () => ({
@@ -111,7 +117,12 @@ vi.mock('@/components/BugReportOverlay', () => ({
 }));
 
 vi.mock('@/components/CustomTitleBar', () => ({
-  default: ({ children }: { children: React.ReactNode }) => <div data-testid="titlebar">{children}</div>,
+  default: ({ children, onLogoutClick }: { children: React.ReactNode; onLogoutClick?: () => void }) => (
+    <div data-testid="titlebar">
+      {children}
+      <button type="button" onClick={onLogoutClick}>注销</button>
+    </div>
+  ),
 }));
 
 vi.mock('@/components/LinkContextMenuProvider', () => ({
@@ -268,13 +279,68 @@ import App from './App';
 
 describe('App helper launch', () => {
   afterEach(() => {
+    window.localStorage.clear();
     vi.clearAllMocks();
+  });
+
+  it('requires login before rendering the client shell', () => {
+    render(<App />);
+
+    expect(screen.getByRole('heading', { name: '登录 MyAgents' })).toBeTruthy();
+    expect(screen.queryByTestId('launcher-page')).toBeNull();
+  });
+
+  it('rejects invalid credentials', () => {
+    render(<App />);
+
+    fireEvent.change(screen.getByLabelText('账号'), { target: { value: 'admin' } });
+    fireEvent.change(screen.getByLabelText('密码'), { target: { value: 'bad' } });
+    fireEvent.click(screen.getByRole('button', { name: '登录' }));
+
+    expect(screen.getByText('账号或密码不正确')).toBeTruthy();
+    expect(screen.queryByTestId('launcher-page')).toBeNull();
+  });
+
+  it('stores login state and renders the client shell after valid credentials', () => {
+    render(<App />);
+
+    fireEvent.change(screen.getByLabelText('账号'), { target: { value: 'admin' } });
+    fireEvent.change(screen.getByLabelText('密码'), { target: { value: '123456' } });
+    fireEvent.click(screen.getByRole('button', { name: '登录' }));
+
+    expect(window.localStorage.getItem('myagents.login')).toBe('ok');
+    expect(screen.getByTestId('launcher-page')).toBeTruthy();
+  });
+
+  it('cancels logout without clearing login state', () => {
+    window.localStorage.setItem('myagents.login', 'ok');
+    render(<App />);
+
+    fireEvent.click(screen.getByRole('button', { name: '注销' }));
+    expect(screen.getByText('注销登录')).toBeTruthy();
+
+    fireEvent.click(screen.getByRole('button', { name: '取消' }));
+    expect(window.localStorage.getItem('myagents.login')).toBe('ok');
+    expect(screen.getByTestId('launcher-page')).toBeTruthy();
+  });
+
+  it('clears login state and returns to login page after confirming logout', () => {
+    window.localStorage.setItem('myagents.login', 'ok');
+    render(<App />);
+
+    fireEvent.click(screen.getByRole('button', { name: '注销' }));
+    fireEvent.click(screen.getByRole('button', { name: '确认' }));
+
+    expect(window.localStorage.getItem('myagents.login')).toBeNull();
+    expect(screen.getByRole('heading', { name: '登录 MyAgents' })).toBeTruthy();
+    expect(screen.queryByTestId('launcher-page')).toBeNull();
   });
 
   it('commits the helper tab before launching so the active tab is renderable', async () => {
     const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
 
     try {
+      window.localStorage.setItem('myagents.login', 'ok');
       render(<App />);
 
       await act(async () => {

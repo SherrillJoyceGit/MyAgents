@@ -22,6 +22,7 @@ import CustomTitleBar from '@/components/CustomTitleBar';
 import LinkContextMenuProvider from '@/components/LinkContextMenuProvider';
 import TabBar from '@/components/TabBar';
 import TabProvider from '@/context/TabProvider';
+import { isLoggedIn, logout } from '@/auth/auth';
 import { useToast } from '@/components/Toast';
 import { useUpdater } from '@/hooks/useUpdater';
 import { useTrayEvents } from '@/hooks/useTrayEvents';
@@ -29,6 +30,7 @@ import { useHelperAgentModelDefaults } from '@/hooks/useHelperAgentModelDefaults
 import { useConfig } from '@/hooks/useConfig';
 import { useThemeEffect } from '@/hooks/useTheme';
 import { useTabSwipeGesture } from '@/hooks/useTabSwipeGesture';
+import Login from '@/pages/Login';
 import Launcher from '@/pages/Launcher'; // eager: default first view → no cold-start fallback
 // Route-split (P1): heavy / non-initial pages load on demand. lazy-Chat moves the
 // entire markdown/mermaid/katex/syntax-highlighter chain out of the entry chunk
@@ -308,6 +310,16 @@ export const MemoizedTabContent = memo(function TabContent({
 });
 
 export default function App() {
+  const [authenticated, setAuthenticated] = useState(isLoggedIn);
+
+  if (!authenticated) {
+    return <Login onLogin={() => setAuthenticated(true)} />;
+  }
+
+  return <AppShell onLogout={() => setAuthenticated(false)} />;
+}
+
+function AppShell({ onLogout }: { onLogout: () => void }) {
   // Auto-update state (silent background updates)
   const { updateReady, updateVersion, restartAndUpdate, checking: updateChecking, downloading: updateDownloading, installing: updateInstalling, preparing: updatePreparing, checkForUpdate, pendingUpdateOnStartup, dismissPendingUpdate } = useUpdater();
 
@@ -339,6 +351,7 @@ export default function App() {
 
   // Bug report overlay state (triggered from titlebar feedback button)
   const [showBugReport, setShowBugReport] = useState(false);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [appVersion, setAppVersion] = useState('');
   useEffect(() => {
     if (isTauriEnvironment()) {
@@ -3330,6 +3343,7 @@ export default function App() {
       <CustomTitleBar
         onSettingsClick={handleOpenSettings}
         onOpenBugReport={() => setShowBugReport(true)}
+        onLogoutClick={() => setShowLogoutConfirm(true)}
         updateReady={updateReady}
         updateVersion={updateVersion}
         updateInstalling={updateInstalling}
@@ -3429,6 +3443,22 @@ export default function App() {
             void handleRestartAndUpdate();
           }}
           onCancel={dismissPendingUpdate}
+        />
+      )}
+
+      {showLogoutConfirm && (
+        <ConfirmDialog
+          title="注销登录"
+          message="确定要退出当前账号并回到登录页面吗？"
+          confirmText="注销"
+          cancelText="取消"
+          confirmVariant="danger"
+          onConfirm={() => {
+            logout();
+            setShowLogoutConfirm(false);
+            onLogout();
+          }}
+          onCancel={() => setShowLogoutConfirm(false)}
         />
       )}
 
