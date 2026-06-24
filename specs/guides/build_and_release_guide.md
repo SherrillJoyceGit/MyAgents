@@ -374,6 +374,7 @@ npx tauri signer generate -w ~/.tauri/myagents.key
 
 ## 相关文档
 
+- [分支管理说明](./branch_management.md) - 功能分支、版本分支和版本规划记录
 - [Windows 构建与测试指南](./windows_build_guide.md) - Windows 版本构建流程
 - [自动更新系统](../tech_docs/auto_update.md) - 静默更新流程、CI/CD 配置
 - [macOS 分发指南](./macos_distribution_guide.md) - 代码签名、公证详解
